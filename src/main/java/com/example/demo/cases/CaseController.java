@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("cases")
@@ -20,8 +21,8 @@ public class CaseController {
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    private List<CaseResponse> getCasesByParameters(@RequestParam(value = "fromDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-                                                    @RequestParam(value = "toDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+    private Map<LocalDate, List<CaseResponse>> getCasesByParameters(@RequestParam(value = "fromDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+                                                                    @RequestParam(value = "toDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
         return caseService.getCasesInDatesRange(fromDate, toDate);
     }
 

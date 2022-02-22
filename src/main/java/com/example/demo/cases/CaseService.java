@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.example.demo.cases.mapper.CaseMapper.mapToEntity;
@@ -20,18 +21,18 @@ import static com.example.demo.cases.validator.CaseRequestDatesRangeValidator.va
 @Service
 @RequiredArgsConstructor
 public class CaseService {
+
     private final CaseRepository caseRepository;
 
     @Transactional
-    public List<CaseResponse> getCasesInDatesRange(LocalDate fromDate,
-                                                   LocalDate toDate
-    ) {
+    public Map<LocalDate, List<CaseResponse>> getCasesInDatesRange(LocalDate fromDate,
+                                                                   LocalDate toDate) {
         validateDates(fromDate, toDate);
 
         return caseRepository.findAllByContractualVerificationDateBetween(fromDate, toDate)
                 .stream()
                 .map(CaseMapper::mapToResponse)
-                .collect(Collectors.toList());
+                .collect(Collectors.groupingBy(CaseResponse::getContractualVerificationDate));
     }
 
     @Transactional
@@ -46,7 +47,11 @@ public class CaseService {
     public String saveCase(CaseRequest request) {
         log.debug("Save case with params. CaseRequest {}", request);
 
-        return caseRepository.save(mapToEntity(request)).getUuid();
+        CaseEntity entity = mapToEntity(request);
+
+        caseRepository.save(entity);
+
+        return entity.getUuid();
     }
 
     @Transactional

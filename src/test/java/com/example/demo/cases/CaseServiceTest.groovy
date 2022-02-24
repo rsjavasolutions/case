@@ -7,7 +7,6 @@ import com.example.demo.cases.enums.Status
 import com.example.demo.cases.exception.CaseNotFoundException
 import com.example.demo.cases.request.CaseRequest
 import org.spockframework.spring.SpringBean
-import spock.lang.Shared
 import spock.lang.Specification
 
 import java.time.LocalDate

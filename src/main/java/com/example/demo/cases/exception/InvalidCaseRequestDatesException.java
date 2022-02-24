@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.time.LocalDate;
 
-@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+@ResponseStatus(HttpStatus.BAD_REQUEST)
 public class InvalidCaseRequestDatesException extends RuntimeException {
 
     private final static String MESSAGE = "Case request params to date %s can not be before from date: %s";

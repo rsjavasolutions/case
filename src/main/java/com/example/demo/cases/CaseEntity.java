@@ -19,8 +19,6 @@ import java.util.UUID;
 public class CaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @EqualsAndHashCode.Include
     private Long id;
     @Column(unique = true, nullable = false)
     @Setter(AccessLevel.NONE)

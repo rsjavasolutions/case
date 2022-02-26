@@ -15,6 +15,7 @@ import spock.lang.Specification
 import java.time.LocalDate
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
 @SpringBootTest
@@ -69,5 +70,35 @@ class CaseControllerTest extends Specification {
         caseResponse.status == Status.UNREALIZED
         caseResponse.contractualVerificationDate == LocalDate.of(2031, 6, 1)
         caseResponse.realizationDate == null
+    }
+
+    def "Should add new case and return '201'status"() {
+        when:
+        def result = mockMvc.perform(post("/cases")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(CaseTestData.caseRequest)))
+
+        then:
+        caseRepository.findAll().size() == 3
+        result.andExpect(status().is(201))
+
+        def newCaseUuid = result.andReturn().getResponse().getContentAsString()
+        newCaseUuid != null
+        newCaseUuid.size() == 36
+
+        def optionalOfCaseEntity = caseRepository.findByUuid(newCaseUuid)
+        optionalOfCaseEntity.isPresent()
+
+        def caseEntity = optionalOfCaseEntity.get()
+        caseEntity.id == 1
+        caseEntity.visible
+        caseEntity.caseGenus == CaseGenus.MANUAL
+        caseEntity.category == CaseCategory.TRAININGS
+        caseEntity.comment == 'new_case_comment'
+        caseEntity.content == 'new_case_content'
+        caseEntity.status == Status.UNREALIZED
+        caseEntity.contractualVerificationDate == LocalDate.of(2031, 8, 8)
+        caseEntity.getRealizationDate() == null
+        caseEntity.creationDateTime != null
     }
 }

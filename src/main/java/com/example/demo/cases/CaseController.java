@@ -32,7 +32,6 @@ public class CaseController {
         return caseService.getCaseByUuid(caseUuid);
     }
 
-
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public String createCase(@RequestBody @Valid CaseRequest request) {

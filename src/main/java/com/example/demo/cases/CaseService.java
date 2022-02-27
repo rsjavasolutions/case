@@ -1,7 +1,10 @@
 package com.example.demo.cases;
 
+import com.example.demo.cases.enums.Status;
 import com.example.demo.cases.exception.CaseNotFoundException;
+import com.example.demo.cases.exception.InvalidStatusInCaseRequestException;
 import com.example.demo.cases.mapper.CaseMapper;
+import com.example.demo.cases.request.CaseModifyRequest;
 import com.example.demo.cases.request.CaseRequest;
 import com.example.demo.cases.response.CaseResponse;
 import lombok.RequiredArgsConstructor;
@@ -59,6 +62,31 @@ public class CaseService {
         log.debug("Delete case with uuid {}", caseUuid);
 
         caseRepository.deleteByUuid(caseUuid);
+    }
+
+    @Transactional
+    public void updateCase(String caseUuid, CaseModifyRequest request) {
+        log.debug("Update case with params. CaseRequest {}, caseUuid {}", request, caseUuid);
+
+        CaseEntity caseEntity = caseRepository.findByUuid(caseUuid).orElseThrow(() -> new CaseNotFoundException(caseUuid));
+        if (caseEntity.getStatus() == Status.REALIZED) {
+            throw new InvalidStatusInCaseRequestException(caseUuid);
+        }
+
+        caseEntity.setCategory(request.getCategory());
+        caseEntity.setComment(request.getComment());
+        caseEntity.setContent(request.getContent());
+        caseEntity.setStatus(request.getStatus());
+        caseEntity.setContractualVerificationDate(request.getContractualVerificationDate());
+        caseEntity.setRealizationDate(getRealizationDate(request.getStatus()));
+
+        caseRepository.save(caseEntity);
+    }
+
+    private LocalDate getRealizationDate(Status status) {
+        return status == Status.REALIZED
+                ? LocalDate.now()
+                : null;
     }
 }
 

@@ -8,14 +8,14 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import spock.lang.Specification
 
 import java.time.LocalDate
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
 @SpringBootTest
@@ -54,12 +54,12 @@ class CaseControllerTest extends Specification {
         result.andReturn().getResolvedException().getMessage() == 'Range between dates is too large: 14, maximum is 7'
     }
 
-    def "Should get case and return '200'status"() {
+    def "Should get case by uuid and return '200'status"() {
         when:
         def result = mockMvc.perform(get("/cases/c61c2ce8-30c5-4e59-acf7-caf576f286bb"))
 
         then:
-        caseRepository.findAll().size() == 2
+        caseRepository.findAll().size() == 3
         result.andExpect(status().is(200))
         def caseResponse = objectMapper.readValue(result.andReturn().getResponse().getContentAsString(), CaseResponse.class)
         caseResponse.uuid == 'c61c2ce8-30c5-4e59-acf7-caf576f286bb'
@@ -72,6 +72,16 @@ class CaseControllerTest extends Specification {
         caseResponse.realizationDate == null
     }
 
+    def "Should throw exception when case uuid doesn't exist and return '404'status"() {
+        when:
+        def result = mockMvc.perform(get("/cases/aaac2ce8-30c5-4e59-acf7-caf576f28ccc"))
+
+        then:
+        result.andExpect(status().is(404))
+        result.andReturn().getResolvedException().getMessage() == 'Can\'t find case with uuid: aaac2ce8-30c5-4e59-acf7-caf576f28ccc'
+    }
+
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
     def "Should add new case and return '201'status"() {
         when:
         def result = mockMvc.perform(post("/cases")
@@ -79,7 +89,7 @@ class CaseControllerTest extends Specification {
                 .content(objectMapper.writeValueAsString(CaseTestData.caseRequest)))
 
         then:
-        caseRepository.findAll().size() == 3
+        caseRepository.findAll().size() == 4
         result.andExpect(status().is(201))
 
         def newCaseUuid = result.andReturn().getResponse().getContentAsString()
@@ -100,5 +110,70 @@ class CaseControllerTest extends Specification {
         caseEntity.contractualVerificationDate == LocalDate.of(2031, 8, 8)
         caseEntity.getRealizationDate() == null
         caseEntity.creationDateTime != null
+    }
+
+    def "Should delete case by uuid"() {
+        when:
+        mockMvc.perform(delete("/cases/c61c2ce8-30c5-4e59-acf7-caf576f286bb"))
+
+        then:
+        caseRepository.findAll().size() == 2
+        caseRepository.findByUuid('c61c2ce8-30c5-4e59-acf7-caf576f286bb').isEmpty()
+    }
+
+    def "Should update case with status UNREALIZED and return '200'status"() {
+        when:
+        mockMvc.perform(put("/cases/u61c2ce8-30c5-4e59-acf7-caf576f286aa")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(CaseTestData.caseModifyRequestWithStatusUnrealized)))
+
+        then:
+        def optionalOfCaseEntity = caseRepository.findByUuid('u61c2ce8-30c5-4e59-acf7-caf576f286aa')
+        optionalOfCaseEntity.isPresent()
+
+        def caseEntity = optionalOfCaseEntity.get()
+        caseEntity.id == -2
+        caseEntity.visible
+        caseEntity.caseGenus == CaseGenus.MANUAL
+        caseEntity.category == CaseCategory.MEETINGS
+        caseEntity.comment == 'updated_case_comment'
+        caseEntity.content == 'updated_case_content'
+        caseEntity.status == Status.UNREALIZED
+        caseEntity.contractualVerificationDate == LocalDate.of(2055, 8, 8)
+        caseEntity.getRealizationDate() == null
+        caseEntity.creationDateTime != null
+    }
+
+    def "Should update case with by status REALIZED and return '200'status"() {
+        when:
+        def result = mockMvc.perform(put("/cases/{caseUuid}", 'u61c2ce8-30c5-4e59-acf7-caf576f286aa')
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(CaseTestData.caseModifyRequestWithStatusRealized)))
+
+        then:
+        def optionalOfCaseEntity = caseRepository.findByUuid('u61c2ce8-30c5-4e59-acf7-caf576f286aa')
+        optionalOfCaseEntity.isPresent()
+
+        def caseEntity = optionalOfCaseEntity.get()
+        caseEntity.id == -2
+        caseEntity.visible
+        caseEntity.caseGenus == CaseGenus.MANUAL
+        caseEntity.category == CaseCategory.EVENTS
+        caseEntity.comment == 'updated_case_comment'
+        caseEntity.content == 'updated_case_content'
+        caseEntity.status == Status.REALIZED
+        caseEntity.contractualVerificationDate == LocalDate.of(2044, 8, 8)
+        caseEntity.getRealizationDate() != null
+        caseEntity.creationDateTime != null
+    }
+
+    def "Should throw exception when case Status is REALIZED and return '422'status"() {
+        when:
+        def result = mockMvc.perform(put("/cases/123c2ce8-30c5-4e59-acf7-caf576f286aa")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(CaseTestData.caseModifyRequestWithStatusUnrealized)))
+
+        then:
+        result.andReturn().getResolvedException().getMessage() == ('Can\'t update case with status REALIZED, case uuid: 123c2ce8-30c5-4e59-acf7-caf576f286aa')
     }
 }

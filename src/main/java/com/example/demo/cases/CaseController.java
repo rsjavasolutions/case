@@ -1,5 +1,6 @@
 package com.example.demo.cases;
 
+import com.example.demo.cases.request.CaseModifyRequest;
 import com.example.demo.cases.request.CaseRequest;
 import com.example.demo.cases.response.CaseResponse;
 import lombok.RequiredArgsConstructor;
@@ -42,5 +43,12 @@ public class CaseController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     private void deleteCase(@PathVariable String caseUuid) {
         caseService.deleteCaseByUuid(caseUuid);
+    }
+
+    @PutMapping("{caseUuid}")
+    @ResponseStatus(HttpStatus.OK)
+    public void updateCase(@PathVariable String caseUuid,
+                           @RequestBody @Valid CaseModifyRequest request) {
+        caseService.updateCase(caseUuid, request);
     }
 }
